@@ -9,11 +9,13 @@ readonly MOBILE443_LISTS_DIR="${MOBILE443_BASE_DIR}/lists"
 readonly MOBILE443_CONFIG_FILE="${MOBILE443_BASE_DIR}/config.conf"
 readonly MOBILE443_ASNS_FILE="${MOBILE443_BASE_DIR}/asns.conf"
 readonly MOBILE443_EXCEPTIONS_FILE="${MOBILE443_BASE_DIR}/exceptions.conf"
+readonly MOBILE443_CUSTOM_ALLOW_FILE="${MOBILE443_BASE_DIR}/custom-allow.conf"
 readonly DEFAULT_MOBILE443_PORTS="${MOBILE443_PORTS:-443}"
 readonly MOBILE443_COMMON_TARGET="/usr/local/sbin/mobile443-common.sh"
 readonly MOBILE443_UPDATE_TARGET="/usr/local/sbin/mobile443-update.sh"
 readonly MOBILE443_APPLY_TARGET="/usr/local/sbin/mobile443-apply-cache.sh"
 readonly MOBILE443_APPLY_EXCEPTIONS_TARGET="/usr/local/sbin/mobile443-apply-exceptions.sh"
+readonly MOBILE443_CUSTOM_ALLOW_TARGET="/usr/local/sbin/mobile443-custom-allow.sh"
 readonly MOBILE443_APPLY_SERVICE_TARGET="/etc/systemd/system/mobile443-apply.service"
 readonly MOBILE443_UPDATE_SERVICE_TARGET="/etc/systemd/system/mobile443-update.service"
 readonly MOBILE443_TIMER_TARGET="/etc/systemd/system/mobile443-update.timer"
@@ -413,11 +415,6 @@ net.ipv4.udp_wmem_min=8192
 
 net.ipv4.ip_local_port_range=1024 65535
 net.ipv4.tcp_max_syn_backlog=8192
-
-net.netfilter.nf_conntrack_max=1048576
-net.netfilter.nf_conntrack_tcp_timeout_established=7440
-net.netfilter.nf_conntrack_udp_timeout=60
-net.netfilter.nf_conntrack_udp_timeout_stream=180
 EOF
 
   sysctl -e -p "${SYSCTL_IPV6_FILE}" >/dev/null
@@ -1119,6 +1116,22 @@ write_mobile443_exceptions() {
   rm -f "${tmp_file}"
 }
 
+write_mobile443_custom_allow() {
+  if [[ -f "${MOBILE443_CUSTOM_ALLOW_FILE}" ]]; then
+    log "Сохранен существующий custom allow mobile443: ${MOBILE443_CUSTOM_ALLOW_FILE}"
+    return
+  fi
+
+  cat > "${MOBILE443_CUSTOM_ALLOW_FILE}" <<'EOF'
+# Дополнительные IP/CIDR, которые надо добавить в ipset mobile443_exceptions
+# после применения кэша или обновления списков.
+# Примеры:
+# 203.0.113.10
+# 203.0.113.0/24
+EOF
+  chmod 0644 "${MOBILE443_CUSTOM_ALLOW_FILE}"
+}
+
 install_mobile443_filter() {
   local repo_root
   repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -1127,11 +1140,13 @@ install_mobile443_filter() {
   write_mobile443_config
   write_default_mobile443_asns
   write_mobile443_exceptions
+  write_mobile443_custom_allow
 
   install -m 755 "${repo_root}/scripts/mobile443-common.sh" "${MOBILE443_COMMON_TARGET}"
   install -m 755 "${repo_root}/scripts/mobile443-update.sh" "${MOBILE443_UPDATE_TARGET}"
   install -m 755 "${repo_root}/scripts/mobile443-apply-cache.sh" "${MOBILE443_APPLY_TARGET}"
   install -m 755 "${repo_root}/scripts/mobile443-apply-exceptions.sh" "${MOBILE443_APPLY_EXCEPTIONS_TARGET}"
+  install -m 755 "${repo_root}/scripts/mobile443-custom-allow.sh" "${MOBILE443_CUSTOM_ALLOW_TARGET}"
   install -m 644 "${repo_root}/systemd/mobile443-apply.service" "${MOBILE443_APPLY_SERVICE_TARGET}"
   install -m 644 "${repo_root}/systemd/mobile443-update.service" "${MOBILE443_UPDATE_SERVICE_TARGET}"
   install -m 644 "${repo_root}/systemd/mobile443-update.timer" "${MOBILE443_TIMER_TARGET}"

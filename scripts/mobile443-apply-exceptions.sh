@@ -20,7 +20,7 @@ load_exceptions() {
   local tmp_file line normalized
 
   tmp_file="$(mktemp)"
-  trap 'rm -f "${tmp_file}"' EXIT
+  trap 'rm -f "${tmp_file:-}"' RETURN
 
   if [[ -f "${EXCEPTIONS_FILE}" ]]; then
     while IFS= read -r line || [[ -n "${line}" ]]; do
@@ -46,6 +46,8 @@ load_exceptions() {
   ipset swap "${IPSET_EXCEPTIONS_TMP_NAME}" "${IPSET_EXCEPTIONS_NAME}"
   ipset flush "${IPSET_EXCEPTIONS_TMP_NAME}"
   log "Исключения mobile443 загружены: $(count_lines "${tmp_file}")"
+  rm -f "${tmp_file}"
+  trap - RETURN
 }
 
 ensure_deps

@@ -88,6 +88,7 @@ if bool_is_true "${ENABLE_MOBILE_ALLOW}"; then
 fi
 
 /usr/local/sbin/mobile443-apply-exceptions.sh
+/usr/local/sbin/mobile443-custom-allow.sh
 apply_rules
 
 if command -v netfilter-persistent >/dev/null 2>&1; then

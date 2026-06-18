@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 ExecStart=/usr/local/sbin/mobile443-apply-cache.sh
+ExecStartPost=/usr/local/sbin/mobile443-custom-allow.sh
 RemainAfterExit=yes
 
 [Install]

@@ -31,6 +31,7 @@ Telegram/Remnawave уведомлений и мониторинга в этой 
 - `scripts/mobile443-update.sh` - скачивание списков Traffic Guard и префиксов RIPEstat для списка разрешенных ASN.
 - `scripts/mobile443-apply-cache.sh` - восстановление `ipset` и правил межсетевого экрана из локального кэша.
 - `scripts/mobile443-apply-exceptions.sh` - загрузка исключений в отдельный `ipset`.
+- `scripts/mobile443-custom-allow.sh` - дополнительный хук ручного доступа для IP/CIDR.
 - `systemd/mobile443-update.service` - разовое обновление списков.
 - `systemd/mobile443-update.timer` - ежедневный запуск обновления.
 - `systemd/mobile443-apply.service` - применение кэша после старта системы.
@@ -92,6 +93,8 @@ Bootstrap применяет базовые правила:
 - `TCPMSS --clamp-mss-to-pmtu` для `mangle/FORWARD`;
 - `DOCKER-USER` защиту от invalid forwarded-трафика, если цепочка существует;
 - опциональные `VPN_SYN_LIM` и `VPN_UDP_AMP`, если включен профиль VPN defense.
+
+Если отказаться от профиля VPN defense, bootstrap не выставляет `nf_conntrack_max`, `nf_conntrack hashsize`, RPS/RFS и дополнительные лимиты SYN/UDP из defense-профиля.
 
 Дополнительно `mobile443` создает:
 
@@ -155,6 +158,20 @@ FILTER_MOBILE_443: non-mobile -> LOG + DROP
 ```
 
 Скрипт нормализует одиночные IP в `/32`, пропускает невалидные строки и загружает результат в `ipset mobile443_exceptions`.
+
+Дополнительный файл ручного доступа:
+
+```text
+/opt/mobile443/custom-allow.conf
+```
+
+Он читается скриптом:
+
+```bash
+/usr/local/sbin/mobile443-custom-allow.sh
+```
+
+`mobile443-apply.service` запускает этот скрипт через `ExecStartPost`, а `mobile443-update.sh` запускает его после обновления списков. Адреса из файла добавляются в `ipset mobile443_exceptions` с `-exist`.
 
 ## 🛡️ Traffic Guard списки
 
