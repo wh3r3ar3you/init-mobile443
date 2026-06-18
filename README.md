@@ -94,7 +94,7 @@ Bootstrap применяет базовые правила:
 - `DOCKER-USER` защиту от invalid forwarded-трафика, если цепочка существует;
 - опциональные `VPN_SYN_LIM` и `VPN_UDP_AMP`, если включен профиль VPN defense.
 
-Если отказаться от профиля VPN defense, bootstrap не выставляет `nf_conntrack_max`, `nf_conntrack hashsize`, RPS/RFS и дополнительные лимиты SYN/UDP из defense-профиля.
+`nf_conntrack_max`, `nf_conntrack hashsize` и conntrack timeouts всегда поднимаются автоматически по RAM. Если отказаться от профиля VPN defense, не применяются только RPS/RFS и дополнительные лимиты SYN/UDP из defense-профиля.
 
 Дополнительно `mobile443` создает:
 

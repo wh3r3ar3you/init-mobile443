@@ -23,9 +23,10 @@ readonly SSHD_CONFIG="/etc/ssh/sshd_config"
 readonly SSHD_BACKUP="/etc/ssh/sshd_config.bak.bootstrap"
 readonly SYSCTL_IPV6_FILE="/etc/sysctl.d/99-disable-ipv6.conf"
 readonly SYSCTL_TUNING_FILE="/etc/sysctl.d/99-vpn-tuning.conf"
+readonly SYSCTL_CONNTRACK_FILE="/etc/sysctl.d/98-mobile443-conntrack.conf"
 readonly SYSCTL_DEFENSE_FILE="/etc/sysctl.d/99-vpn-defense.conf"
 readonly SYSCTL_RPS_FILE="/etc/sysctl.d/99-vpn-rps.conf"
-readonly CONNTRACK_MODPROBE_FILE="/etc/modprobe.d/vpn-defense-conntrack.conf"
+readonly CONNTRACK_MODPROBE_FILE="/etc/modprobe.d/mobile443-conntrack.conf"
 readonly RPS_SCRIPT_TARGET="/usr/local/sbin/apply-vpn-rps.sh"
 readonly RPS_SERVICE_TARGET="/etc/systemd/system/vpn-rps.service"
 readonly XANMOD_KEYRING="/etc/apt/keyrings/xanmod-archive-keyring.gpg"
@@ -497,7 +498,7 @@ calculate_vpn_defense_tuning() {
 
   DEFENSE_RPS_CPU_MASK="$(build_cpu_mask "${nproc}")"
 
-  log "Автотюнинг VPN defense: nproc=${nproc} RAM=${ram_gb}G ct_max=${DEFENSE_CT_MAX} buckets=${DEFENSE_CT_BUCKETS} somaxconn=${DEFENSE_SOMAXCONN} syn_backlog=${DEFENSE_SYN_BACKLOG} netdev_backlog=${DEFENSE_NETDEV_BACKLOG} rps_mask=${DEFENSE_RPS_CPU_MASK} rps_flow=${DEFENSE_RPS_FLOW_TOTAL}/${DEFENSE_RPS_FLOW_Q}"
+  log "Автотюнинг conntrack/VPN defense: nproc=${nproc} RAM=${ram_gb}G ct_max=${DEFENSE_CT_MAX} buckets=${DEFENSE_CT_BUCKETS} somaxconn=${DEFENSE_SOMAXCONN} syn_backlog=${DEFENSE_SYN_BACKLOG} netdev_backlog=${DEFENSE_NETDEV_BACKLOG} rps_mask=${DEFENSE_RPS_CPU_MASK} rps_flow=${DEFENSE_RPS_FLOW_TOTAL}/${DEFENSE_RPS_FLOW_Q}"
 }
 
 build_cpu_mask() {
@@ -556,18 +557,31 @@ apply_conntrack_hashsize() {
   fi
 }
 
+configure_conntrack_sysctl() {
+  log "Настраивается conntrack на максимальные значения"
+  calculate_vpn_defense_tuning
+  apply_conntrack_hashsize
+
+  cat <<EOF > "${SYSCTL_CONNTRACK_FILE}"
+# Автоматически рассчитанные максимальные значения conntrack.
+net.netfilter.nf_conntrack_max=${DEFENSE_CT_MAX}
+net.netfilter.nf_conntrack_tcp_timeout_established=7440
+net.netfilter.nf_conntrack_udp_timeout=60
+net.netfilter.nf_conntrack_udp_timeout_stream=180
+EOF
+
+  sysctl -e -p "${SYSCTL_CONNTRACK_FILE}" >/dev/null
+}
+
 configure_vpn_defense_sysctl() {
   if [[ "${INSTALL_VPN_DEFENSE}" -ne 1 ]]; then
     return
   fi
 
   log "Настраивается sysctl для VPN defense"
-  calculate_vpn_defense_tuning
-  apply_conntrack_hashsize
 
   cat <<EOF > "${SYSCTL_DEFENSE_FILE}"
 # Автоматически рассчитанный профиль VPN defense.
-net.netfilter.nf_conntrack_max=${DEFENSE_CT_MAX}
 net.ipv4.tcp_syncookies=1
 net.core.somaxconn=${DEFENSE_SOMAXCONN}
 net.ipv4.tcp_max_syn_backlog=${DEFENSE_SYN_BACKLOG}
@@ -1335,6 +1349,7 @@ main() {
 
   configure_hostname
   configure_sysctl
+  configure_conntrack_sysctl
   update_system
   install_packages
   configure_vpn_defense_sysctl
