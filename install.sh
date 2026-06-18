@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly REPO_ARCHIVE_URL="https://codeload.github.com/wh3r3ar3you/mobile443upd/tar.gz/refs/heads/main"
+readonly REPO_ARCHIVE_URL="https://codeload.github.com/wh3r3ar3you/init-mobile443/tar.gz/refs/heads/main"
 
 PACKAGE_MANAGER=""
 PACKAGE_INDEX_UPDATED=0
@@ -145,10 +145,10 @@ main() {
   fi
 
   WORKDIR="$(mktemp -d)"
-  mkdir -p "${WORKDIR}/mobile443upd"
-  download_archive "${WORKDIR}/mobile443upd.tar.gz"
-  tar -xzf "${WORKDIR}/mobile443upd.tar.gz" --strip-components=1 -C "${WORKDIR}/mobile443upd"
-  cd "${WORKDIR}/mobile443upd"
+  mkdir -p "${WORKDIR}/init-mobile443"
+  download_archive "${WORKDIR}/init-mobile443.tar.gz"
+  tar -xzf "${WORKDIR}/init-mobile443.tar.gz" --strip-components=1 -C "${WORKDIR}/init-mobile443"
+  cd "${WORKDIR}/init-mobile443"
   exec bash ./bootstrap.sh
 }
 

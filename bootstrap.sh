@@ -9,7 +9,7 @@ readonly MOBILE443_LISTS_DIR="${MOBILE443_BASE_DIR}/lists"
 readonly MOBILE443_CONFIG_FILE="${MOBILE443_BASE_DIR}/config.conf"
 readonly MOBILE443_ASNS_FILE="${MOBILE443_BASE_DIR}/asns.conf"
 readonly MOBILE443_EXCEPTIONS_FILE="${MOBILE443_BASE_DIR}/exceptions.conf"
-readonly MOBILE443_PORTS="${MOBILE443_PORTS:-443}"
+readonly DEFAULT_MOBILE443_PORTS="${MOBILE443_PORTS:-443}"
 readonly MOBILE443_COMMON_TARGET="/usr/local/sbin/mobile443-common.sh"
 readonly MOBILE443_UPDATE_TARGET="/usr/local/sbin/mobile443-update.sh"
 readonly MOBILE443_APPLY_TARGET="/usr/local/sbin/mobile443-apply-cache.sh"
@@ -32,6 +32,7 @@ readonly XANMOD_SOURCE_LIST="/etc/apt/sources.list.d/xanmod-release.list"
 HOSTNAME_VALUE=""
 SSH_PORT_VALUE="${DEFAULT_SSH_PORT}"
 SSH_KEY_VALUE=""
+MOBILE443_PORTS_VALUE="${DEFAULT_MOBILE443_PORTS}"
 MOBILE443_EXCEPTIONS=()
 INSTALL_VPN_DEFENSE=0
 INSTALL_XANMOD_LTS=0
@@ -142,6 +143,50 @@ ask_ssh_port() {
     fi
 
     printf 'Invalid SSH port. Enter a number from 1 to 65535.\n' >&2
+  done
+}
+
+normalize_mobile443_ports() {
+  local input="$1"
+  local port numeric_port normalized_ports=()
+  local -A seen=()
+  local IFS=$' \t\n'
+
+  input="${input//,/ }"
+
+  for port in ${input}; do
+    if ! [[ "${port}" =~ ^[0-9]+$ ]]; then
+      return 1
+    fi
+
+    numeric_port="$((10#${port}))"
+    if (( numeric_port < 1 || numeric_port > 65535 )); then
+      return 1
+    fi
+
+    if [[ -z "${seen[${numeric_port}]:-}" ]]; then
+      normalized_ports+=("${numeric_port}")
+      seen["${numeric_port}"]=1
+    fi
+  done
+
+  [[ ${#normalized_ports[@]} -gt 0 ]] || return 1
+  printf '%s\n' "${normalized_ports[*]}"
+}
+
+ask_mobile443_ports() {
+  local input normalized
+
+  while true; do
+    read -r -p "Enter mobile443 filtered ports [${DEFAULT_MOBILE443_PORTS}]: " input
+    input="${input:-${DEFAULT_MOBILE443_PORTS}}"
+
+    if normalized="$(normalize_mobile443_ports "${input}")"; then
+      MOBILE443_PORTS_VALUE="${normalized}"
+      return
+    fi
+
+    printf 'Invalid ports. Enter one or more TCP/UDP ports from 1 to 65535, separated by spaces or commas.\n' >&2
   done
 }
 
@@ -942,7 +987,7 @@ write_mobile443_config() {
   install -d -m 755 "${MOBILE443_BASE_DIR}" "${MOBILE443_STATE_DIR}" "${MOBILE443_LISTS_DIR}" /etc/iptables
 
   cat > "${MOBILE443_CONFIG_FILE}" <<EOF
-PORTS="${MOBILE443_PORTS}"
+PORTS="${MOBILE443_PORTS_VALUE}"
 ENABLE_TRAF_GUARD="true"
 ENABLE_TRAF_GUARD_GOVERNMENT="true"
 ENABLE_TRAF_GUARD_ANTISCANNER="true"
@@ -1225,7 +1270,7 @@ print_summary() {
   printf 'ssh -p %s root@%s\n\n' "${SSH_PORT_VALUE}" "${HOSTNAME_VALUE}"
   printf 'mobile443 timer status:\n%s\n\n' "${timer_status}"
   printf 'Manual mobile443 update:\n%s\n\n' "${MOBILE443_UPDATE_TARGET}"
-  printf 'Filtered VPN ports: %s\n\n' "${MOBILE443_PORTS}"
+  printf 'Filtered VPN ports: %s\n\n' "${MOBILE443_PORTS_VALUE}"
   if [[ "${INSTALL_VPN_DEFENSE}" -eq 1 ]]; then
     printf 'VPN defense profile:\n'
     printf '  conntrack max: %s\n' "${DEFENSE_CT_MAX}"
@@ -1266,6 +1311,7 @@ main() {
 
   ask_hostname
   ask_ssh_port
+  ask_mobile443_ports
   ask_ssh_key
   ask_vpn_defense
   ask_mobile443_exceptions
