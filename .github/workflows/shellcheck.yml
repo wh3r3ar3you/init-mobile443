@@ -1,0 +1,25 @@
+name: Shell Scripts
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Bash syntax check
+        run: bash -n bootstrap.sh install.sh scripts/update-traffic-guard.sh
+
+      - name: Shellcheck
+        run: shellcheck bootstrap.sh install.sh scripts/update-traffic-guard.sh

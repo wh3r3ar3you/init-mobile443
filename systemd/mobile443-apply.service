@@ -1,0 +1,12 @@
+[Unit]
+Description=Apply mobile443 sets and firewall rules from local cache
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/mobile443-apply-cache.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

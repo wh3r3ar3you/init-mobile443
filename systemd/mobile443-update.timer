@@ -1,0 +1,11 @@
+[Unit]
+Description=Run mobile443 updater daily
+
+[Timer]
+OnCalendar=*-*-* 00:00:00 UTC
+Persistent=true
+RandomizedDelaySec=15m
+Unit=mobile443-update.service
+
+[Install]
+WantedBy=timers.target
