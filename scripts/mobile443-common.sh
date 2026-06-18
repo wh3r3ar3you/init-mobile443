@@ -54,7 +54,7 @@ log() {
 
 need_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    printf 'Missing command: %s\n' "$1" >&2
+    printf 'Не найдена команда: %s\n' "$1" >&2
     exit 1
   fi
 }
@@ -141,7 +141,7 @@ download_and_validate_list() {
   clean_tmp="$(mktemp)"
   trap 'rm -f "${raw_tmp}" "${clean_tmp}"' RETURN
 
-  log "Downloading ${label}: ${url}"
+  log "Скачивается ${label}: ${url}"
   curl -fsS --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 60 "${url}" -o "${raw_tmp}"
 
   valid_count=0
@@ -153,12 +153,12 @@ download_and_validate_list() {
       printf '%s\n' "${normalized}" >> "${clean_tmp}"
       valid_count=$((valid_count + 1))
     else
-      log "WARN ${label}: skip invalid entry '${normalized}'"
+      log "ПРЕДУПРЕЖДЕНИЕ ${label}: пропущена некорректная запись '${normalized}'"
     fi
   done < "${raw_tmp}"
 
   if (( valid_count == 0 )); then
-    log "ERROR ${label}: no valid CIDR entries"
+    log "ОШИБКА ${label}: нет корректных CIDR-записей"
     return 1
   fi
 
@@ -167,13 +167,13 @@ download_and_validate_list() {
   if (( old_count > 0 )); then
     min_safe=$((old_count * 70 / 100))
     if (( valid_count < min_safe )); then
-      log "ERROR ${label}: too few entries after update (${valid_count} < ${min_safe})"
+      log "ОШИБКА ${label}: слишком мало записей после обновления (${valid_count} < ${min_safe})"
       return 1
     fi
   fi
 
   install -m 0644 "${clean_tmp}" "${destination}"
-  log "${label} entries: ${valid_count}"
+  log "${label}: записей ${valid_count}"
 }
 
 rebuild_ipset_from_file() {
@@ -184,7 +184,7 @@ rebuild_ipset_from_file() {
   local prefix
 
   if [[ ! -f "${file}" ]]; then
-    log "WARN ${label}: file not found: ${file}"
+    log "ПРЕДУПРЕЖДЕНИЕ ${label}: файл не найден: ${file}"
     return 1
   fi
 
@@ -196,7 +196,7 @@ rebuild_ipset_from_file() {
 
   ipset swap "${tmp_set}" "${target_set}"
   ipset flush "${tmp_set}"
-  log "${label} loaded into ${target_set}"
+  log "${label} загружен в ${target_set}"
 }
 
 delete_jump_if_exists() {

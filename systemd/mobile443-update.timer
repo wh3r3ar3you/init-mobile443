@@ -1,5 +1,5 @@
 [Unit]
-Description=Run mobile443 updater daily
+Description=Ежедневный запуск обновления mobile443
 
 [Timer]
 OnCalendar=*-*-* 00:00:00 UTC

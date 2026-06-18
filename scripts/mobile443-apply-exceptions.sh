@@ -31,7 +31,7 @@ load_exceptions() {
         continue
       fi
 
-      log "WARN exceptions: skip invalid entry '${normalized}'"
+      log "ПРЕДУПРЕЖДЕНИЕ: в исключениях пропущена некорректная запись '${normalized}'"
     done < "${EXCEPTIONS_FILE}"
   fi
 
@@ -45,7 +45,7 @@ load_exceptions() {
 
   ipset swap "${IPSET_EXCEPTIONS_TMP_NAME}" "${IPSET_EXCEPTIONS_NAME}"
   ipset flush "${IPSET_EXCEPTIONS_TMP_NAME}"
-  log "mobile443 exceptions loaded: $(count_lines "${tmp_file}")"
+  log "Исключения mobile443 загружены: $(count_lines "${tmp_file}")"
 }
 
 ensure_deps

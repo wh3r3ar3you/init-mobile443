@@ -15,21 +15,21 @@ Telegram/Remnawave уведомлений и мониторинга в этой 
 Скрипт выполняет базовую подготовку сервера:
 
 - обновляет систему;
-- настраивает hostname;
+- настраивает имя хоста;
 - усиливает SSH;
 - ставит Docker, Zsh и Speedtest CLI;
 - применяет sysctl-тюнинг;
-- опционально включает VPN defense profile;
-- опционально ставит XanMod LTS kernel;
-- разворачивает `mobile443` firewall, `ipset` и systemd timer.
+- опционально включает профиль VPN defense;
+- опционально ставит ядро XanMod LTS;
+- разворачивает правила межсетевого экрана `mobile443`, `ipset` и systemd-таймер.
 
 ## 📦 Состав проекта
 
 - `bootstrap.sh` - основной интерактивный bootstrap.
 - `install.sh` - one-line installer с GitHub.
 - `scripts/mobile443-common.sh` - общие функции для `ipset` и `iptables`.
-- `scripts/mobile443-update.sh` - скачивание Traffic Guard списков и RIPEstat prefixes для ASN allowlist.
-- `scripts/mobile443-apply-cache.sh` - восстановление `ipset` и firewall rules из локального кэша.
+- `scripts/mobile443-update.sh` - скачивание списков Traffic Guard и префиксов RIPEstat для списка разрешенных ASN.
+- `scripts/mobile443-apply-cache.sh` - восстановление `ipset` и правил межсетевого экрана из локального кэша.
 - `scripts/mobile443-apply-exceptions.sh` - загрузка исключений в отдельный `ipset`.
 - `systemd/mobile443-update.service` - разовое обновление списков.
 - `systemd/mobile443-update.timer` - ежедневный запуск обновления.
@@ -37,7 +37,7 @@ Telegram/Remnawave уведомлений и мониторинга в этой 
 
 ## ⚡ Быстрый старт
 
-One-line install:
+Установка одной командой:
 
 ```bash
 apt install curl -y && bash <(curl -fsSL https://raw.githubusercontent.com/wh3r3ar3you/init-mobile443/main/install.sh)
@@ -53,7 +53,7 @@ chmod +x bootstrap.sh
 Установщик интерактивно спросит, какие порты фильтровать:
 
 ```text
-Enter mobile443 filtered ports [443]:
+Введите порты для фильтра mobile443 [443]:
 ```
 
 Можно ввести один порт или список через пробелы/запятые:
@@ -74,24 +74,24 @@ MOBILE443_PORTS="443 8443" ./bootstrap.sh
 
 Во время запуска `bootstrap.sh` запросит:
 
-- hostname;
+- имя хоста;
 - SSH port;
 - порты, которые должен фильтровать `mobile443`;
 - публичный SSH key для `/root/.ssh/authorized_keys`;
-- включать ли VPN defense profile;
-- добавить ли source IP/CIDR исключения для `mobile443`;
-- ставить ли XanMod LTS kernel;
+- включать ли профиль VPN defense;
+- добавить ли исходные IP/CIDR исключения для `mobile443`;
+- ставить ли ядро XanMod LTS;
 - делать ли автоматический reboot после установки XanMod.
 
-## 🔥 Firewall logic
+## 🔥 Логика межсетевого экрана
 
 Bootstrap применяет базовые правила:
 
-- `conntrack INVALID` drop для `INPUT` и `FORWARD`;
-- `ICMP echo-request` drop;
+- drop для `conntrack INVALID` в `INPUT` и `FORWARD`;
+- drop для `ICMP echo-request`;
 - `TCPMSS --clamp-mss-to-pmtu` для `mangle/FORWARD`;
 - `DOCKER-USER` защиту от invalid forwarded-трафика, если цепочка существует;
-- опциональные `VPN_SYN_LIM` и `VPN_UDP_AMP`, если включен VPN defense profile.
+- опциональные `VPN_SYN_LIM` и `VPN_UDP_AMP`, если включен профиль VPN defense.
 
 Дополнительно `mobile443` создает:
 
@@ -99,8 +99,8 @@ Bootstrap применяет базовые правила:
 - `ipset traf_guard_antiscanner`;
 - `ipset allowed_mobile_443`;
 - `ipset mobile443_exceptions`;
-- chain `TRAF_GUARD_PRECHECK`;
-- chain `FILTER_MOBILE_443`.
+- цепочку `TRAF_GUARD_PRECHECK`;
+- цепочку `FILTER_MOBILE_443`.
 
 Порядок обработки трафика:
 
@@ -114,7 +114,7 @@ FILTER_MOBILE_443: allowed_mobile_443 -> ACCEPT
 FILTER_MOBILE_443: non-mobile -> LOG + DROP
 ```
 
-## 📱 ASN allowlist
+## 📱 Список разрешенных ASN
 
 Список ASN хранится здесь:
 
@@ -132,7 +132,7 @@ FILTER_MOBILE_443: non-mobile -> LOG + DROP
 
 ## ✅ Исключения
 
-Во время bootstrap можно добавить source IP или CIDR, которые должны проходить фильтр до Traffic Guard и mobile ASN проверки.
+Во время bootstrap можно добавить исходные IP или CIDR, которые должны проходить фильтр до Traffic Guard и проверки mobile ASN.
 
 Поддерживаются одиночные IPv4-адреса и IPv4 CIDR:
 
@@ -201,14 +201,14 @@ systemctl status mobile443-update.service --no-pager
 systemctl status mobile443-apply.service --no-pager
 ```
 
-Firewall chains:
+Цепочки межсетевого экрана:
 
 ```bash
 iptables -L TRAF_GUARD_PRECHECK -n -v --line-numbers
 iptables -L FILTER_MOBILE_443 -n -v --line-numbers
 ```
 
-IP sets:
+IP-наборы:
 
 ```bash
 ipset list traf_guard_government | head -20

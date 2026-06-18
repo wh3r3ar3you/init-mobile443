@@ -16,7 +16,7 @@ update_mobile_allowlist() {
   local asn new_count old_count min_safe
 
   if [[ ! -f "${ASNS_FILE}" ]]; then
-    printf 'ASN file not found: %s\n' "${ASNS_FILE}" >&2
+    printf 'Файл ASN не найден: %s\n' "${ASNS_FILE}" >&2
     exit 1
   fi
 
@@ -24,11 +24,11 @@ update_mobile_allowlist() {
   TMP_CLEAN="$(mktemp)"
   trap cleanup_tmp EXIT
 
-  log "Fetching announced prefixes from RIPEstat"
+  log "Запрашиваются анонсируемые префиксы из RIPEstat"
 
   while IFS= read -r asn || [[ -n "${asn}" ]]; do
     [[ -z "${asn}" || "${asn}" =~ ^# ]] && continue
-    log "Fetching AS${asn}"
+    log "Запрашивается AS${asn}"
     curl -fsS --retry 3 --retry-delay 2 --connect-timeout 10 --max-time 30 \
       "https://stat.ripe.net/data/announced-prefixes/data.json?resource=AS${asn}" \
       | jq -r '.data.prefixes[]?.prefix // empty' >> "${TMP_RAW}" || true
@@ -41,22 +41,22 @@ update_mobile_allowlist() {
   new_count="$(count_lines "${TMP_CLEAN}")"
   old_count="$(count_lines "${ALLOW_CACHE_FILE}")"
 
-  log "Collected mobile prefixes: new=${new_count}, old=${old_count}"
+  log "Собраны мобильные префиксы: новых=${new_count}, старых=${old_count}"
 
   if (( new_count < 500 )); then
-    log "Refusing mobile allowlist update: too few prefixes"
+    log "Обновление списка разрешенных мобильных префиксов отклонено: слишком мало префиксов"
     exit 1
   fi
 
   if (( old_count > 0 )); then
     min_safe=$((old_count * 70 / 100))
     if (( new_count < min_safe )); then
-      log "Refusing mobile allowlist update: new prefix count dropped too much (need >= ${min_safe})"
+      log "Обновление списка разрешенных мобильных префиксов отклонено: количество новых префиксов слишком сильно снизилось (нужно >= ${min_safe})"
       exit 1
     fi
   fi
 
-  rebuild_ipset_from_file "${IPSET_ALLOW_NAME}" "${IPSET_ALLOW_TMP_NAME}" "${TMP_CLEAN}" "mobile allowlist"
+  rebuild_ipset_from_file "${IPSET_ALLOW_NAME}" "${IPSET_ALLOW_TMP_NAME}" "${TMP_CLEAN}" "список разрешенных мобильных префиксов"
   install -m 0644 "${TMP_CLEAN}" "${ALLOW_CACHE_FILE}"
   cleanup_tmp
   trap - EXIT
@@ -65,7 +65,7 @@ update_mobile_allowlist() {
 mkdir -p "${STATE_DIR}"
 exec 9>"${LOCK_FILE}"
 flock -n 9 || {
-  log "Another mobile443 job is already running"
+  log "Другая задача mobile443 уже выполняется"
   exit 0
 }
 
@@ -91,7 +91,7 @@ fi
 apply_rules
 
 if command -v netfilter-persistent >/dev/null 2>&1; then
-  netfilter-persistent save >/dev/null || log "netfilter-persistent save failed"
+  netfilter-persistent save >/dev/null || log "Не удалось выполнить netfilter-persistent save"
 fi
 
-log "Update complete"
+log "Обновление завершено"

@@ -9,7 +9,7 @@ PACKAGE_INDEX_UPDATED=0
 
 require_root() {
   if [[ "${EUID}" -ne 0 ]]; then
-    printf 'Run as root\n' >&2
+    printf 'Запустите скрипт от root\n' >&2
     exit 1
   fi
 }
@@ -57,7 +57,7 @@ install_packages() {
   fi
 
   if [[ -z "${PACKAGE_MANAGER}" ]]; then
-    printf 'Unable to install missing prerequisites automatically: supported package manager not found\n' >&2
+    printf 'Не удалось автоматически установить зависимости: поддерживаемый пакетный менеджер не найден\n' >&2
     exit 1
   fi
 
@@ -94,11 +94,11 @@ ensure_command() {
     return
   fi
 
-  printf 'Installing missing prerequisite: %s\n' "${cmd}"
+  printf 'Устанавливается недостающая зависимость: %s\n' "${cmd}"
   install_packages "$@"
 
   if ! command -v "${cmd}" >/dev/null 2>&1; then
-    printf 'Failed to install required command: %s\n' "${cmd}" >&2
+    printf 'Не удалось установить обязательную команду: %s\n' "${cmd}" >&2
     exit 1
   fi
 }
@@ -122,7 +122,7 @@ download_archive() {
     return
   fi
 
-  printf 'Neither curl nor wget is available after prerequisite installation\n' >&2
+  printf 'После установки зависимостей curl и wget недоступны\n' >&2
   exit 1
 }
 
@@ -135,12 +135,12 @@ main() {
   ensure_command tar tar
 
   if [[ ! -e /etc/ssl/certs/ca-certificates.crt ]]; then
-    printf 'Installing missing prerequisite: ca-certificates\n'
+    printf 'Устанавливается недостающая зависимость: ca-certificates\n'
     install_packages ca-certificates
   fi
 
   if ! command -v curl >/dev/null 2>&1 && ! command -v wget >/dev/null 2>&1; then
-    printf 'Installing missing prerequisite: curl\n'
+    printf 'Устанавливается недостающая зависимость: curl\n'
     install_packages curl
   fi
 

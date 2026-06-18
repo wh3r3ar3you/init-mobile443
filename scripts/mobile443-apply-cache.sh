@@ -8,7 +8,7 @@ source /usr/local/sbin/mobile443-common.sh
 mkdir -p "${STATE_DIR}"
 exec 9>"${LOCK_FILE}"
 flock -n 9 || {
-  log "Another mobile443 job is already running"
+  log "Другая задача mobile443 уже выполняется"
   exit 0
 }
 
@@ -26,12 +26,12 @@ fi
 
 if bool_is_true "${ENABLE_MOBILE_ALLOW}"; then
   if [[ -s "${ALLOW_CACHE_FILE}" ]]; then
-    rebuild_ipset_from_file "${IPSET_ALLOW_NAME}" "${IPSET_ALLOW_TMP_NAME}" "${ALLOW_CACHE_FILE}" "mobile allowlist"
+    rebuild_ipset_from_file "${IPSET_ALLOW_NAME}" "${IPSET_ALLOW_TMP_NAME}" "${ALLOW_CACHE_FILE}" "список разрешенных мобильных префиксов"
   else
-    log "WARN mobile allowlist cache not found: ${ALLOW_CACHE_FILE}"
+    log "ПРЕДУПРЕЖДЕНИЕ: кэш списка разрешенных мобильных префиксов не найден: ${ALLOW_CACHE_FILE}"
   fi
 fi
 
 /usr/local/sbin/mobile443-apply-exceptions.sh
 apply_rules
-log "Cache applied"
+log "Кэш применен"

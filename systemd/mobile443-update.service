@@ -1,5 +1,5 @@
 [Unit]
-Description=Refresh mobile443 mobile ASN allowlist and Traffic Guard blocklists
+Description=Обновление списка разрешенных мобильных ASN и блок-листов Traffic Guard
 After=network-online.target
 Wants=network-online.target
 

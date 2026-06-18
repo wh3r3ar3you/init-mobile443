@@ -1,5 +1,5 @@
 [Unit]
-Description=Apply mobile443 sets and firewall rules from local cache
+Description=Применение наборов mobile443 и правил межсетевого экрана из локального кэша
 After=network-online.target
 Wants=network-online.target
 
